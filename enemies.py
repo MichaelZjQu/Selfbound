@@ -4,8 +4,6 @@ from random import randint
 from projectile import Projectile
 
 class Enemy:
-    
-
     def __init__(self, x, y, imgs, name, width = PLAYER_WIDTH, height = PLAYER_HEIGHT):
         self.frames = []
         for i in range(imgs):
@@ -19,22 +17,25 @@ class Enemy:
         self.rightFrames = self.frames[0:2]
         self.leftFrames = self.frames[2:4]
 
-       
-
         self.x = x
         self.y = y 
 
+        self.width = width
+        self.height = height
+
         self.rect = pygame.Rect(self.x, self.y, width, height)
 
-        self.maxhp = 100
-        #HP0, DMG1, ARMOR2, SPEED3, ATK4 
-        self.stats = [self.maxhp, 50, 100, 3, 1000]
+        #HP0, DMG1, ARMOR2, SPEED3, ATK4
+        self.maxstats = [100, 100, 100, 3, 400]
+        self.stats = [100, 100, 100, 3, 400]
+        self.abilities = []
 
         self.flame = self.leach = self.vampire = False
 
         self.frame = 0
         self.lastmove = 0
         self.lastshot = 0
+        self.lastframe = 0
     
     def move(self, tick, px, py, act):
         if tick - self.lastmove > 500:
@@ -62,7 +63,6 @@ class Enemy:
         elif 31 <= act <= 40:
             self.y -= speed
         elif 500> DIST (self.x, self.y, px, py) > 200:
-
             angle = 360-ANGLETOPOS(self.x, self.y, px, py)
 
             if 90 < math.degrees(angle)  % 360 < 270:
@@ -75,16 +75,16 @@ class Enemy:
 
         self.rect = pygame.Rect(self.x, self.y, self.rect.width, self.rect.height)
 
-        if tick - self.lastmove > 200:
+        if tick - self.lastframe > 200:
             self.frame += 1
             self.frame %= 2
-            self.lastmove = tick
+            self.lastframe = tick
 
         return act, shot
-    
+
     def shoot(self, px, py):
-        angle = ANGLETOPOS(self.x, self.y, px, py)
-        shot = Projectile(self.x, self.y, 0, 20, 20, angle, 10, 300, self.stats[1], (self.flame, self.leach, self.vampire))
+        angle = ANGLETOPOS(self.x+self.width//2, self.y+self.height//2, px, py)
+        shot = Projectile(self.x + self.width//2, self.y+self.height//2, 0, 20, 20, angle, 10, 400, self.stats[1], (self.flame, self.leach, self.vampire))
         return shot
     
     def hit(self, projectile):
@@ -99,7 +99,7 @@ class Enemy:
 
 
         renderx, rendery = OFFSET(self.x, self.y, PLAYER_WIDTH, PLAYER_HEIGHT, px, py)
-        pygame.draw.rect(screen, (255,0,0), pygame.Rect(renderx, rendery - 30, 64, 10))
-        pygame.draw.rect(screen, (57, 255, 20), pygame.Rect(renderx, rendery - 30, 64*self.stats[0]/self.maxhp, 10))
+        pygame.draw.rect(screen, (255,0,0), pygame.Rect(renderx, rendery - 30, self.width, 10))
+        pygame.draw.rect(screen, (57, 255, 20), pygame.Rect(renderx, rendery - 30, self.width*self.stats[0]/self.maxstats[0], 10))
 
         screen.blit(self.frames[self.frame], (renderx, rendery))

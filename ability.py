@@ -1,5 +1,9 @@
 import pygame
 
+d = {"Rage": 0, "Flame Trail": 1, "Shockwave": 2, "Chaos Storm": 3, "Life Leach": 4, "Vampire": 5}
+images = [pygame.image.load("imgs/abil/Rage.png"), pygame.image.load("imgs/abil/Flame.png"), pygame.image.load("imgs/abil/Shockwave.png"),
+          pygame.image.load("imgs/abil/Storm.png"), pygame.image.load("imgs/abil/Leach.png"), pygame.image.load("imgs/abil/Vampire.png"),]
+
 def abilityUpdate(name, status, p):
     print(name, status)
 
@@ -38,7 +42,7 @@ class Ability:
         self.name = name
         self.cd = cd
         self.key = key
-        self.image = pygame.image.load('imgs/abil/' + name + '.png')
+        # self.image = pygame.image.load('imgs/abil/' + name + '.png')
 
         self.canUse = True
         self.start = 0
@@ -55,7 +59,7 @@ class Ability:
 
     def display(self, screen, index, tick):
         if self.canUse:
-            screen.blit(self.image, (20+(120*index), 540))
+            screen.blit(images[d[self.name]], (20+(120*index), 540))
         if not self.canUse:
-            screen.blit(self.image, (20+(120*index), 540))
+            screen.blit(images[d[self.name]], (20+(120*index), 540))
             draw_rect_alpha(screen, (255, 255, 255), pygame.Rect(20+(120*index), 540, 100, 100-100*(tick - self.start)/self.cd))

@@ -9,9 +9,7 @@ class Player:
     x = 300
     y = 300
 
-
-
-    PLAYER_SPEED = 10
+    PLAYER_SPEED = 5
 
 
     def __init__(self, imgs, name, width = PLAYER_WIDTH, length = PLAYER_HEIGHT):
@@ -36,10 +34,10 @@ class Player:
         self.leach = False
         self.vampire = False
 
-        self.maxhp = 100
-
         #HP0, DMG1, ARMOR2, SPEED3, ATK4 
-        self.stats = [self.maxhp, 100, 100, 5, 500]
+        self.maxstats = [100, 100, 100, 5, 400]
+        self.stats = [100, 100, 100, 5, 500]
+        self.abilities = []
 
         self.frame = 0
         self.moving = True  
@@ -80,8 +78,6 @@ class Player:
 
         return collisions
 
-    
-
     def move(self, keys, tick, tilemap, walkSound):
 
         w = keys[pygame.K_w]
@@ -96,7 +92,7 @@ class Player:
 
         if down not in [(1,0,1,0), (0,1,0,1), (0,0,0,0), (1,1,1,1)]:
             if not self.moving:
-                walkSound.play(-1)
+                self.sound(0, walkSound)
             self.moving = True
             if tick-self.lastmove > 120:
                 self.frame += 1
@@ -104,7 +100,7 @@ class Player:
                 self.lastmove = tick
 
         else:
-            walkSound.stop()
+            self.sound(1, walkSound)
             self.moving = False
             self.frame = 0
 
@@ -143,8 +139,12 @@ class Player:
 
         self.rect = pygame.Rect(self.x, self.y, PLAYER_WIDTH, PLAYER_HEIGHT)
 
-
-        
+    def sound(self, stop, walkSound):
+        if stop:
+            walkSound.stop()
+        else:
+            walkSound.play(-1)
+    
     
     def shoot(self, keys, tick, rockSound):
         mx, my = pygame.mouse.get_pos()
@@ -155,19 +155,14 @@ class Player:
         rel_x, rel_y = mx - qx, my - qy
         mouse_angle = -math.radians((-180/math.pi) * math.atan2(rel_y, rel_x) - 90)
         if keys[K_SPACE] and tick - self.lastshot > self.stats[4]:
-
             rockSound.play()
-            
-            print(self.stats[0])
-
             self.lastshot = tick
-            temp = Projectile(self.x, self.y, 0, 20, 20, mouse_angle, 10, 300, self.stats[1], (self.flame, self.leach, self.vampire))
+            temp = Projectile(self.x+PLAYER_WIDTH//2, self.y+PLAYER_HEIGHT//2, 0, 20, 20, mouse_angle, 10, 400, self.stats[1], (self.flame, self.leach, self.vampire))
             return temp
 
     def hit(self, projectile):
         if self.rect.colliderect(projectile.rect):
             self.lasthit = pygame.time.get_ticks()
-
             self.stats[0] -= projectile.dmg*2/(1+math.e**(0.01*self.stats[2]))
             return 1
         return 0
@@ -177,19 +172,15 @@ class Player:
     
     def vampirer(self, killed):
         if killed:
-            self.stats[0] += self.maxhp * 0.2
+            self.stats[0] += self.maxstats[0] * 0.2
 
     def render(self, screen, hitImage):
-        
-
-
         renderx, rendery = OFFSET(self.x, self.y, PLAYER_WIDTH, PLAYER_HEIGHT, self.x, self.y)
         
         
         screen.blit(self.frames[self.frame], (renderx, rendery))
-        
+
         if pygame.time.get_ticks() - self.lasthit < 500:
             hitImage.set_alpha(64)
             screen.blit(hitImage, (0, 0))
-
     

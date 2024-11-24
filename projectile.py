@@ -60,6 +60,6 @@ class Projectile:
 
 
     def render(self, px, py, screen):
-        renderx, rendery = OFFSET(self.rect.left + PLAYER_WIDTH//2, self.rect.top+PLAYER_HEIGHT//2, self.rect.width, self.rect.height, px, py)
+        renderx, rendery = OFFSET(self.rect.left, self.rect.top, self.rect.width, self.rect.height, px, py)
 
         screen.blit(self.image, (renderx, rendery))

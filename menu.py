@@ -1,9 +1,22 @@
 import pygame
 from stats import Profile
 
-def handleClick(mode, profile, clickSound, gameSound):
+def handleClick(mode, profile, clickSound, gameSound, homeSound):
     clickSound.set_volume(0.4)
     clickSound.play()
+
+    if mode == "end":
+        if pygame.Rect(335, 482, 439, 105).collidepoint(pygame.mouse.get_pos()):
+            gameSound.stop()
+            homeSound.play(-1)
+            profile.fillShop()
+            return "start"
+    if mode == "win":
+        if pygame.Rect(335, 482, 439, 105).collidepoint(pygame.mouse.get_pos()):
+            gameSound.stop()
+            homeSound.play(-1)
+            profile.fillShop()
+            return "intro"
     if mode == "intro":
         if pygame.Rect(320, 440, 287, 99).collidepoint(pygame.mouse.get_pos()):
             return "start"
@@ -11,6 +24,7 @@ def handleClick(mode, profile, clickSound, gameSound):
         if pygame.Rect(80, 80, 430, 160).collidepoint(pygame.mouse.get_pos()):
             gameSound.set_volume(0.5)
             gameSound.play(-1)
+            homeSound.stop()
             return "play"
         if pygame.Rect(80, 250, 430, 160).collidepoint(pygame.mouse.get_pos()):
             # profile.fillShop()

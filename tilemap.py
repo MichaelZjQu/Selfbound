@@ -22,7 +22,7 @@ class Tileset:
             self.tiles.append(surf)
 
 
-from random import randint, choice
+from random import randint
 
 class Tilemap:
 
@@ -39,7 +39,7 @@ class Tilemap:
     def floor1(cls, tileset):
         mp = cls(tileset)
         #grass
-        mp.tilemap = [[choice([randint(5, 7)]) for i in range(MAP_LENGTH)] for j in range(MAP_HEIGHT)]
+        mp.tilemap = [[randint(5, 7) for i in range(MAP_LENGTH)] for j in range(MAP_HEIGHT)]
 
         
 

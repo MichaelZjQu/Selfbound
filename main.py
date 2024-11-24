@@ -8,6 +8,7 @@ from enemies import Enemy
 import math
 from random import randint
 from resources import ENEMY_LOCS
+from copy import deepcopy
 
 pygame.init()
 pygame.font.init()
@@ -17,6 +18,8 @@ mainImage = pygame.image.load("imgs/menu/main.png")
 gameImage = pygame.image.load("imgs/menu/game.png")
 shopImage = pygame.image.load("imgs/menu/shop.png")
 equipImage = pygame.image.load("imgs/menu/equip.png")
+diedImage = pygame.image.load("imgs/menu/died.png")
+winImage = pygame.image.load("imgs/menu/win.png")
 
 cardImage = pygame.image.load("imgs/menu/card.png")
 slotImage = pygame.image.load("imgs/menu/slot.png")
@@ -33,6 +36,8 @@ equipImage1 = pygame.image.load("imgs/menu/equip1.png")
 equipImage2 = pygame.image.load("imgs/menu/equip2.png")
 startImage1 = pygame.image.load("imgs/menu/start1.png")
 startImage2 = pygame.image.load("imgs/menu/start2.png")
+conImage1 = pygame.image.load("imgs/menu/con1.png")
+conImage2 = pygame.image.load("imgs/menu/con2.png")
 
 vamponImage = pygame.image.load("imgs/cards/vampon.png")
 vampoffImage = pygame.image.load("imgs/cards/vampoff.png")
@@ -44,6 +49,8 @@ lostImage = pygame.image.load("imgs/stats/lost.png")
 heartImage = pygame.image.load("imgs/stats/heart.png")
 shieldImage = pygame.image.load("imgs/stats/shield.png")
 swordImage = pygame.image.load("imgs/stats/sword.png")
+coinImage = pygame.image.load("imgs/misc/2.png")
+coinImage.set_colorkey((255,255,255))
 
 walkSound = pygame.mixer.Sound("imgs/audio/walking.wav")
 clickSound = pygame.mixer.Sound("imgs/audio/click.wav")
@@ -51,16 +58,16 @@ homeSound = pygame.mixer.Sound("imgs/audio/home.wav")
 gameSound = pygame.mixer.Sound("imgs/audio/music2.mp3")
 rockSound = pygame.mixer.Sound("imgs/audio/rock.wav")
 cardSound = pygame.mixer.Sound("imgs/audio/card.wav")
+moneySound = pygame.mixer.Sound("imgs/audio/money.mp3")
 
 hitImage = pygame.image.load("imgs/misc/3.png")
-
 
 CARDCOUNT = 13
 cardImages = []
 for i in range(CARDCOUNT):
     cardImages.append(pygame.image.load('imgs/cards/' + str(i+1) + '.png'))
 
-rage = Ability("Rage", 2000, "r")
+rage = Ability("Rage", 20000, "r")
 wave = Ability("Shockwave", 15000, "e")
 flame = Ability("Flame Trail", 30000, "f")
 storm = Ability("Chaos Storm", 60000, "c")
@@ -84,49 +91,74 @@ Card.cardList.append((80, 50, -30, 2, 0, None, cardImages[12]))
 profile = Profile()
 profile.fillShop()
 
-tileset = Tileset(1, 18, 'ground', 32)
+tileset = Tileset(1, 14, 'ground', 32)
 tilemap = Tilemap.floor1(tileset.tiles)
 
 p = Player(16, "player")
+gameStartTime = 0
 
 act = {}
+
+boss = None
+waveindex = 1
 
 playerProjectiles = []
 enemyProjectiles = []
 enemylist = []
 
-
-abilities = []
+prevLife = []
 
 def startGame():
-    global tileset, tilemap, p, playerProjectiles, enemyProjectiles, enemylist, act, abilities
-    tileset = Tileset(1, 18, 'ground', 32)
+    global tileset, tilemap, p, prevLife, playerProjectiles, enemyProjectiles, enemylist, act, gameStartTime, boss
+    tileset = Tileset(1, 14, 'ground', 32)
     tilemap = Tilemap.floor1(tileset.tiles)
 
-    p = Player(16, "player")
+    player = Player(16, "player")
+    waveindex = 1
+
+    gameStartTime = pygame.time.get_ticks()
 
     act = {}
+
+
 
     playerProjectiles = []
     enemyProjectiles = []
     enemylist = []
 
+    player.stats[0] = profile.hp
+    player.stats[1] = profile.dmg
+    player.stats[2] = profile.armor
+    player.stats[3] = profile.speed
+    player.stats[4] = 400
+    for i in range(5):
+        player.maxstats[i] = player.stats[i]
 
-    p.stats[0] = profile.hp
-    p.stats[1] = profile.dmg
-    p.stats[2] = profile.armor
-    p.stats[3] = profile.speed
-    p.stats[4] = 200
-    abilities = []
     for i in range(10):
         if profile.active[i] and profile.active[i].ability:
             print(profile.active[i].ability.name)
             if profile.active[i].ability.name == "Life Leach":
-                p.leach = True
+                player.leach = True
             elif profile.active[i].ability.name == "Vampire":
-                p.vampire = True
+                player.vampire = True
             else:
-                abilities.append(profile.active[i].ability)
+                player.abilities.append(deepcopy(profile.active[i].ability))
+
+    for abil in player.abilities:
+        abil.canUse = True
+
+    prevLife.append(player)
+    p = prevLife[-1]
+
+    boss = Enemy(600, 600, 4, "boss", 256, 256)
+    boss.maxstats = [20000, 1000, 150, 3, 1000]
+    boss.stats = [20000, 1000, 150, 3, 1000]
+    act[boss] = 0
+
+    enemylist.append(boss)
+
+    for life in prevLife:
+        print(life.maxstats[0], life.maxstats[1])
 
 def introDisplay():
     screen.blit(mainImage, (0, 0))
@@ -155,13 +187,17 @@ def startDisplay():
 
 def statDisplay():
     screen.blit(lostImage, (800, 20))
-    screen.blit(barImage, (800, 20), (0, 0, 300*((p.stats[0]/p.maxhp)), 60))
+    screen.blit(barImage, (800, 20), (0, 0, 300*((p.stats[0]/p.maxstats[0])), 60))
+
     screen.blit(heartImage, (780, 20))
     screen.blit(shieldImage, (780, 85))
     screen.blit(swordImage, (780, 150))
+    screen.blit(coinImage, (780, 580))
 
-    screen.blit(pygame.font.Font('fonts/start2p.ttf', 30).render(f"{p.stats[2]}", False, (255, 255, 255)), (870, 100))
-    screen.blit(pygame.font.Font('fonts/start2p.ttf', 30).render(f"{p.stats[1]}", False, (255, 255, 255)), (870, 170))
+    screen.blit(pygame.font.Font('fonts/start2p.ttf', 30).render(f"{round(p.stats[0])}", False, (255, 255, 255)), (870, 37))
+    screen.blit(pygame.font.Font('fonts/start2p.ttf', 30).render(f"{round(p.stats[2])}", False, (255, 255, 255)), (870, 100))
+    screen.blit(pygame.font.Font('fonts/start2p.ttf', 30).render(f"{round(p.stats[1])}", False, (255, 255, 255)), (870, 170))
+    screen.blit(pygame.font.Font('fonts/start2p.ttf', 30).render(f"{profile.coins}", False, (255, 255, 255)), (870, 585))
 
     if p.leach:
         screen.blit(leachonImage, (20, 20))
@@ -172,13 +208,62 @@ def statDisplay():
     else:
         screen.blit(vampoffImage, (100, 20))
 
+def endDisplay():
+    screen.blit(diedImage, (0, 0))
+    if pygame.Rect(335, 482, 439, 105).collidepoint(pygame.mouse.get_pos()):
+        screen.blit(conImage1, (335, 482))
+    else:
+        screen.blit(conImage2, (335, 482))
+
+def winDisplay():
+    screen.blit(winImage, (0, 0))
+    if pygame.Rect(335, 482, 439, 105).collidepoint(pygame.mouse.get_pos()):
+        screen.blit(conImage1, (335, 482))
+    else:
+        screen.blit(conImage2, (335, 482))
+
+
+def inherit(new_enemy):
+    index = randint(0, len(prevLife)-1)
+    
+    for abil in prevLife[index].abilities:
+        new_enemy.abilities.append(deepcopy(abil))
+
+    for i in range(len(prevLife[index].maxstats)):
+        new_enemy.maxstats[i] = prevLife[index].maxstats[i]//2
+        new_enemy.stats[i] = prevLife[index].maxstats[i]//2
+
+
 def spawn_enemies(wave):
     if wave == 1:
         for i in ENEMY_LOCS:
             if randint(1,4) == 1:
                 new_enemy = Enemy(i[0], i[1], 4, "ghost")
+                inherit(new_enemy)
                 enemylist.append(new_enemy)
                 act[new_enemy] = 0
+    if wave == 2:
+        for i in ENEMY_LOCS:
+            if randint(1,3) == 1:
+                new_enemy = Enemy(i[0], i[1], 4, "ghost")
+                inherit(new_enemy)
+                enemylist.append(new_enemy)
+                act[new_enemy] = 0
+    if wave == 3:
+        for i in ENEMY_LOCS:
+            if randint(1,2) == 1:
+                new_enemy = Enemy(i[0], i[1], 4, "ghost")
+                inherit(new_enemy)
+                enemylist.append(new_enemy)
+                act[new_enemy] = 0
+    if wave >= 4:
+        for i in ENEMY_LOCS:
+            if randint(1,1) == 1:
+                new_enemy = Enemy(i[0], i[1], 4, "ghost")
+                inherit(new_enemy)
+                enemylist.append(new_enemy)
+                act[new_enemy] = 0
+
 
 clock = pygame.time.Clock()
 running = True
@@ -192,12 +277,10 @@ while running:
             running = False
         if event.type == pygame.MOUSEBUTTONUP:
             if mode != "play":
-                mode = handleClick(mode, profile, clickSound, gameSound)
+                mode = handleClick(mode, profile, clickSound, gameSound, homeSound)
                 if mode == "play":
                     startGame()
-                    spawn_enemies(1)
             
-
     if mode == "intro":
         introDisplay()
     if mode == "start":
@@ -207,8 +290,11 @@ while running:
     if mode == "equip":
         profile.displayEquipMenu(screen, equipImage, slotImage, cardImage, l1Image, l2Image, r1Image, r2Image)
     if mode == "play":
-        homeSound.stop()
         tilemap.render(p.x, p.y, screen)
+
+        if pygame.time.get_ticks() - gameStartTime >= ((waveindex-1)*30000) + 2000:
+            spawn_enemies(waveindex)
+            waveindex += 1
 
         keys = pygame.key.get_pressed()
         p.move(keys, pygame.time.get_ticks(), tilemap.tilemap, walkSound)
@@ -216,18 +302,22 @@ while running:
         if tt != None:
             playerProjectiles.append(tt)
         
-
-
         for npc in enemylist:
             act_t, shot = npc.move(pygame.time.get_ticks(), p.x, p.y, act[npc])
             act[npc] = act_t
+            for abil in npc.abilities:
+                if abil.canUse:
+                    abil.canUse = False
+                    abil.start = pygame.time.get_ticks()
+                    abilityUpdate(abil.name, "s", npc)
+
             npc.render(p.x, p.y, screen)
         
             if shot != None:
                 enemyProjectiles.append(shot)
-
+        
         p.render(screen, hitImage)
-
+        
         for i in playerProjectiles:
             enemylist, dealt, killed = i.collide(enemylist)
             if dealt:
@@ -236,7 +326,8 @@ while running:
                 if p.vampire:
                     p.vampirer(killed)
                 if killed:
-                    profile.coins += 1
+                    moneySound.play()
+                    profile.coins += 5
                 playerProjectiles.remove(i)
                 del(i)
             else:
@@ -245,9 +336,6 @@ while running:
                     del(i)
                     continue
                 i.render(p.x, p.y, screen)
-
-            
-                    
         
         for i in enemyProjectiles:
             if p.hit(i):
@@ -256,19 +344,33 @@ while running:
                 print(p.stats[0])
                 break
             if not i.update():
+                enemyProjectiles.remove(i)
                 del(i)
                 continue
             i.render(p.x, p.y, screen)
 
-        for i in range(len(abilities)):
-            status = abilities[i].activate(pygame.key.get_pressed(), pygame.time.get_ticks())
-            abilities[i].display(screen, i, pygame.time.get_ticks())
-        
+        for i in range(len(p.abilities)):
+            status = p.abilities[i].activate(pygame.key.get_pressed(), pygame.time.get_ticks())
+            p.abilities[i].display(screen, i, pygame.time.get_ticks())
+
             if status:
-                abilityUpdate(abilities[i].name, status, p)
-            
+                abilityUpdate(p.abilities[i].name, status, p)
+
         statDisplay()
 
+        if p.stats[0] <= 0:
+            p.sound(1, walkSound)
+            mode = "end" 
+        if boss.stats[0] <= 0:
+            p.sound(1, walkSound)
+            mode = "win"  
+        print(act[boss])
+    if mode == "end":
+        gameSound.stop()
+        endDisplay()
+    if mode == "win":
+        gameSound.stop()
+        winDisplay()
 
     pygame.display.update()
     clock.tick(30)
