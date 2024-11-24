@@ -109,7 +109,7 @@ enemylist = []
 prevLife = []
 
 def startGame():
-    global tileset, tilemap, p, prevLife, playerProjectiles, enemyProjectiles, enemylist, act, gameStartTime, boss
+    global tileset, tilemap, p, prevLife, playerProjectiles, enemyProjectiles, enemylist, act, gameStartTime, boss, waveindex
     tileset = Tileset(1, 14, 'ground', 32)
     tilemap = Tilemap.floor1(tileset.tiles)
 
@@ -150,7 +150,7 @@ def startGame():
     prevLife.append(player)
     p = prevLife[-1]
 
-    boss = Enemy(600, 600, 4, "boss", 256, 256)
+    boss = Enemy(3000, 1500, 4, "boss", 256, 256)
     boss.maxstats = [20000, 1000, 150, 3, 1000]
     boss.stats = [20000, 1000, 150, 3, 1000]
     act[boss] = 0
